@@ -1,0 +1,230 @@
+---
+# PLAY *****************************************************************************************************************
+- name: Terraform
+  hosts: localhost
+  gather_facts: no
+
+  tasks:
+    - name: GitHub Enterprise Server HA Terraform
+      block:
+
+        - name: Terraform GitHub Enterprise Server apply
+          # http://docs.ansible.com/ansible/terraform_module.html
+          terraform:
+            project_path: "../terraform/ghes"
+            variables_file: "../vars/{{ terraform_workspace }}.tfvars"
+            state: present
+            workspace: "{{ terraform_workspace }}"
+          register: tf
+
+        - name: Set GitHub Enterprise Server primary host IP
+          # http://docs.ansible.com/ansible/add_host_module.html
+          add_host:
+            groups: ghes
+            name: primary
+            ansible_host: "{{ tf.outputs.ghes_primary.value.PUBLIC_IP }}"
+            ansible_port: 122
+            ansible_user: admin
+          when: tf.outputs.ghes_primary is defined
+
+        - name: Set GitHub Enterprise Server replica host IP
+          # http://docs.ansible.com/ansible/add_host_module.html
+          add_host:
+            groups: ghes
+            name: replica
+            ansible_host: "{{ tf.outputs.ghes_replica.value.PUBLIC_IP }}"
+            ansible_port: 122
+            ansible_user: admin
+          when: tf.outputs.ghes_replica is defined
+
+      tags:
+        - configure
+        - ghes
+        - ha
+
+    - name: GitHub Enterprise Server backup-utils Terraform
+      block:
+
+        - name: Terraform backup-utils apply
+          # http://docs.ansible.com/ansible/terraform_module.html
+          terraform:
+            project_path: "../terraform/backup-utils"
+            variables_file: "../vars/{{ terraform_workspace }}.tfvars"
+            state: present
+            workspace: "{{ terraform_workspace }}"
+          register: tf
+
+        - name: Set GitHub Enterprise Server backup-utils host IP
+          # http://docs.ansible.com/ansible/add_host_module.html
+          add_host:
+            groups: utils
+            name: backup
+            ansible_host: "{{ tf.outputs.backup_utils.value.PUBLIC_IP }}"
+            ansible_port: 22
+            ansible_user: admin
+          when: tf.outputs.backup_utils is defined
+
+      tags:
+        - configure
+        - ghes
+        - backup
+
+    - name: GitHub Enterprise Server monitoring Terraform
+      block:
+
+        - name: Terraform monitoring apply
+          # http://docs.ansible.com/ansible/terraform_module.html
+          terraform:
+            project_path: "../terraform/monitoring-elk"
+            variables_file: "../vars/{{ terraform_workspace }}.tfvars"
+            state: present
+            workspace: "{{ terraform_workspace }}"
+          register: tf
+
+        - name: Set GitHub Enterprise Server monitoring host IP
+          # http://docs.ansible.com/ansible/add_host_module.html
+          add_host:
+            groups: utils
+            name: monitoring
+            ansible_host: "{{ tf.outputs.monitoring.value.PUBLIC_IP }}"
+            ansible_port: 22
+            ansible_user: admin
+          when: tf.outputs.monitoring is defined
+
+      tags:
+        - configure
+        - ghes
+        - monitoring
+        - elk
+
+  tags:
+    # if you have hosts defined in `inventory.yml`,
+    # run `ansible-playbook -i inventory.yml ghes.playbook.yml --skip-tags Terraform`
+    # to skip this play completely
+    - terraform
+
+  # https://docs.ansible.com/ansible/latest/dev_guide/developing_program_flow_modules.html#no-log
+  # we do not log to not expose sensitive data
+  no_log: true
+
+
+# PLAY *****************************************************************************************************************
+- name: GitHub Enterprise Server primary setup
+  # NOTE: we do not run on 'primary'
+  #       instead we go via GitHub Enterprise API
+  hosts: localhost
+  gather_facts: no
+
+  tasks:
+    - name: Setup high availability primary
+      block:
+
+      - name: Setup primary
+        include_role:
+          name: ghes_primary
+          tasks_from: setup
+        vars:
+          github_host: "{{ hostvars.primary.ansible_host }}"
+        when:
+          - hostvars.primary.ansible_host is defined
+
+      - name: Apply primary setup
+        include_role:
+          name: ghes_primary
+          tasks_from: apply
+        vars:
+          github_host: "{{ hostvars.primary.ansible_host }}"
+        when:
+          - hostvars.primary.ansible_host is defined
+
+  tags:
+    - configure
+    - ghes
+    - primary
+    - ha
+
+
+# PLAY *****************************************************************************************************************
+- name: GitHub Enterprise Server replica setup
+  hosts: replica
+  gather_facts: no
+
+  pre_tasks:
+    - name: Wait for connection
+      include_role:
+        name: ghes_common
+        tasks_from: connection
+      when:
+        - hostvars.primary.ansible_host is defined
+        - hostvars.replica.ansible_host is defined
+
+  tasks:
+    - name: Setup high availability replica
+      include_role:
+        name: ghes_replica
+      vars:
+        github_host: "{{ hostvars.primary.ansible_host }}"
+        replica_host: "{{ hostvars.replica.ansible_host }}"
+      when:
+        - hostvars.primary.ansible_host is defined
+        - hostvars.replica.ansible_host is defined
+
+  tags:
+    - configure
+    - ghes
+    - replica
+    - ha
+
+
+# PLAY *****************************************************************************************************************
+- name: GitHub Enterprise Server backup-utils setup
+  hosts: backup
+  gather_facts: no
+
+  pre_tasks:
+    - name: Wait for connection
+      include_role:
+        name: ghes_common
+        tasks_from: connection
+
+  tasks:
+    - name: Setup backup-utils
+      include_role:
+        name: ghes_backup_utils
+      vars:
+        github_host: "{{ hostvars.primary.ansible_host }}"
+        backup_host: "{{ hostvars.backup.ansible_host }}"
+      when:
+        - hostvars.primary.ansible_host is defined
+        - hostvars.backup.ansible_host is defined
+
+  tags:
+    - configure
+    - ghes
+    - backup
+
+
+# PLAY *****************************************************************************************************************
+- name: GitHub Enterprise Server monitoring setup
+  hosts: monitoring
+  gather_facts: no
+  become: yes
+
+  pre_tasks:
+    - name: Wait for connection
+      include_role:
+        name: ghes_common
+        tasks_from: connection
+
+  tasks:
+    - name: Setup monitoring (ELK)
+      include_role:
+        name: ghes_monitoring_elk
+      when:
+        - hostvars.monitoring.ansible_host is defined
+
+  tags:
+    - configure
+    - ghes
+    - monitoring
+    - elk

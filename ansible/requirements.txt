@@ -1,0 +1,5 @@
+# We don't want to list all of the dependencies here
+# as it causes issues when using different versions
+# of Python. We only need to list the main packages
+# that we need, and only lock in the versions if necessary
+ansible>=2.9

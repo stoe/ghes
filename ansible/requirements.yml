@@ -1,0 +1,19 @@
+- src: https://github.com/stoelzle/ghes_common
+  version: master
+  name: ghes_common
+
+- src: https://github.com/stoelzle/ghes_primary
+  version: master
+  name: ghes_primary
+
+- src: https://github.com/stoelzle/ghes_replica
+  version: master
+  name: ghes_replica
+
+- src: https://github.com/stoelzle/ghes_backup_utils
+  version: master
+  name: ghes_backup_utils
+
+- src: https://github.com/stoelzle/ghes_monitoring_elk
+  version: stoe/dev
+  name: ghes_monitoring_elk

@@ -1,0 +1,15 @@
+group_vars/
+roles/
+
+!group_vars/all.example.yml
+
+inventory.yml
+*.log
+
+# Created by https://www.gitignore.io/api/ansible
+# Edit at https://www.gitignore.io/?templates=ansible
+
+### Ansible ###
+*.retry
+
+# End of https://www.gitignore.io/api/ansible

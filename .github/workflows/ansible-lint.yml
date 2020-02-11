@@ -1,0 +1,17 @@
+name: Ansible Lint
+
+on:
+  push:
+    paths:
+      - "ansible/**/*"
+
+jobs:
+  lint:
+    runs-on: macos
+    steps:
+      - uses: actions/checkout@v1
+      - run: brew install ansible ansible-lint
+      - name: ansible-lint
+        run: |
+          cd ansible
+          ansible-lint *.yml -c .ansible-lint
