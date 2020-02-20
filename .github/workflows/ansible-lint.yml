@@ -9,7 +9,7 @@ jobs:
   lint:
     runs-on: macos
     steps:
-      - uses: actions/checkout@v1
+      - uses: actions/checkout@v2
       - run: brew install ansible ansible-lint
       - name: ansible-lint
         run: |
