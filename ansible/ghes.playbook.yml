@@ -220,6 +220,8 @@
     - name: Setup monitoring (ELK)
       include_role:
         name: ghes_monitoring_elk
+      vars:
+        github_host: "{{ hostvars.primary.ansible_host }}"
       when:
         - hostvars.monitoring.ansible_host is defined
 
