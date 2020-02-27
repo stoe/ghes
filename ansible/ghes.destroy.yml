@@ -1,0 +1,36 @@
+---
+# PLAY *****************************************************************************************************************
+- name: Terraform
+  hosts: localhost
+  gather_facts: no
+
+  tasks:
+    - name: Terraform
+      block:
+        - name: GitHub Enterprise Server destroy
+          # http://docs.ansible.com/ansible/terraform_module.html
+          terraform:
+            project_path: "../terraform/ghes"
+            variables_file: "../vars/{{ terraform_workspace }}.tfvars"
+            state: absent
+            workspace: "{{ terraform_workspace }}"
+
+        - name: backup-utils destroy
+          # http://docs.ansible.com/ansible/terraform_module.html
+          terraform:
+            project_path: "../terraform/backup-utils"
+            variables_file: "../vars/{{ terraform_workspace }}.tfvars"
+            state: absent
+            workspace: "{{ terraform_workspace }}"
+
+        - name: monitoring destroy
+          # http://docs.ansible.com/ansible/terraform_module.html
+          terraform:
+            project_path: "../terraform/monitoring-elk"
+            variables_file: "../vars/{{ terraform_workspace }}.tfvars"
+            state: absent
+            workspace: "{{ terraform_workspace }}"
+
+      # https://docs.ansible.com/ansible/latest/dev_guide/developing_program_flow_modules.html#no-log
+      # we do not log to not expose sensitive data
+      no_log: true
