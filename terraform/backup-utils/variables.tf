@@ -19,7 +19,7 @@ variable "aws_profile" {
   default     = ""
 }
 
-variable "aws_credantials_file" {
+variable "aws_credentials_file" {
   description = "(Optional) This is the path to the shared credentials file. If this is not set and a profile is specified, ~/.aws/credentials will be used"
   default     = ""
 }

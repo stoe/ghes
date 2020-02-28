@@ -19,7 +19,7 @@ provider "aws" {
   version                 = "~> 2.33"
   region                  = "${var.aws_region}"
   profile                 = "${var.aws_profile}"
-  shared_credentials_file = "${var.aws_credantials_file}"
+  shared_credentials_file = "${var.aws_credentials_file}"
 }
 
 # ----------------------------------------------------------------------------------------------------------------------
