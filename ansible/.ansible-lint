@@ -4,7 +4,7 @@ exclude_paths:
   - inventory.yml
   - requirements.yml
 parseable: true
-quiet: true
+quiet: false
 skip_list: []
 use_default_rules: true
 verbosity: 1
