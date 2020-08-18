@@ -1,13 +1,13 @@
-name: Ansible Lint
-
 on:
   push:
     paths:
-      - "ansible/**/*"
+      - 'ansible/**/*'
+
+name: Ansible Lint
 
 jobs:
   lint:
-    runs-on: macos
+    runs-on: macos-latest
     steps:
       - uses: actions/checkout@v2
       - run: brew install ansible ansible-lint
